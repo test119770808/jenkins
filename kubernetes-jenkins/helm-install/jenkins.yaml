@@ -1,0 +1,388 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      checksum/config: 3a3286781194b90bc13d5d3ddd8a95f1fee4cd0da9b327167b798a030c73a3fa
+      cni.projectcalico.org/containerID: 373556c5ec1516170cdbd1e3d4d324049969abb07ed4593be3f1625fb5245b41
+      cni.projectcalico.org/podIP: 172.16.196.137/32
+      cni.projectcalico.org/podIPs: 172.16.196.137/32
+    creationTimestamp: "2024-08-22T00:41:11Z"
+    generateName: jenkins-
+    labels:
+      app.kubernetes.io/component: jenkins-controller
+      app.kubernetes.io/instance: jenkins
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: jenkins
+      apps.kubernetes.io/pod-index: "0"
+      controller-revision-hash: jenkins-679db6746d
+      statefulset.kubernetes.io/pod-name: jenkins-0
+    name: jenkins-0
+    namespace: default
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: StatefulSet
+      name: jenkins
+      uid: 443c96df-d657-4ae7-b87d-0f382e58e43f
+    resourceVersion: "109461"
+    uid: ac1d417b-73bd-407e-aee4-30a844ef54c3
+  spec:
+    containers:
+    - args:
+      - --httpPort=8080
+      env:
+      - name: SECRETS
+        value: /run/secrets/additional
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
+      - name: JAVA_OPTS
+        value: -Dcasc.reload.token=$(POD_NAME) -Duser.timezone=Asia/Seoul -Dcasc.jenkins.config=jenkins-config.yaml
+      - name: JENKINS_OPTS
+        value: --webroot=/var/jenkins_cache/war --sessionTimeout=1440 --sessionEviction=86400
+      - name: JENKINS_SLAVE_AGENT_PORT
+        value: "50000"
+      - name: CASC_JENKINS_CONFIG
+        value: /var/jenkins_home/casc_configs
+      image: docker.io/jenkins/jenkins:2.462.1-jdk17
+      imagePullPolicy: Always
+      livenessProbe:
+        failureThreshold: 5
+        httpGet:
+          path: /login
+          port: http
+          scheme: HTTP
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      name: jenkins
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      - containerPort: 50000
+        name: agent-listener
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /login
+          port: http
+          scheme: HTTP
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      resources:
+        limits:
+          cpu: "2"
+          memory: 4Gi
+        requests:
+          cpu: 50m
+          memory: 256Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        runAsGroup: 1000
+        runAsUser: 1000
+      startupProbe:
+        failureThreshold: 12
+        httpGet:
+          path: /login
+          port: http
+          scheme: HTTP
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/jenkins_home
+        name: jenkins-home
+      - mountPath: /var/jenkins_config
+        name: jenkins-config
+        readOnly: true
+      - mountPath: /usr/share/jenkins/ref/plugins/
+        name: plugin-dir
+      - mountPath: /var/jenkins_home/casc_configs
+        name: sc-config-volume
+      - mountPath: /run/secrets/additional
+        name: jenkins-secrets
+        readOnly: true
+      - mountPath: /var/jenkins_cache
+        name: jenkins-cache
+      - mountPath: /tmp
+        name: tmp-volume
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-bcxzk
+        readOnly: true
+    - env:
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
+      - name: LABEL
+        value: jenkins-jenkins-config
+      - name: FOLDER
+        value: /var/jenkins_home/casc_configs
+      - name: NAMESPACE
+        value: default
+      - name: REQ_URL
+        value: http://localhost:8080/reload-configuration-as-code/?casc-reload-token=$(POD_NAME)
+      - name: REQ_METHOD
+        value: POST
+      - name: REQ_RETRY_CONNECT
+        value: "10"
+      image: docker.io/kiwigrid/k8s-sidecar:1.27.5
+      imagePullPolicy: IfNotPresent
+      name: config-reload
+      resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/jenkins_home/casc_configs
+        name: sc-config-volume
+      - mountPath: /var/jenkins_home
+        name: jenkins-home
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-bcxzk
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    hostname: jenkins-0
+    initContainers:
+    - env:
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
+      - name: LABEL
+        value: jenkins-jenkins-config
+      - name: FOLDER
+        value: /var/jenkins_home/casc_configs
+      - name: NAMESPACE
+        value: default
+      - name: METHOD
+        value: LIST
+      image: docker.io/kiwigrid/k8s-sidecar:1.27.5
+      imagePullPolicy: IfNotPresent
+      name: config-reload-init
+      resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/jenkins_home/casc_configs
+        name: sc-config-volume
+      - mountPath: /var/jenkins_home
+        name: jenkins-home
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-bcxzk
+        readOnly: true
+    - command:
+      - sh
+      - /var/jenkins_config/apply_config.sh
+      image: docker.io/jenkins/jenkins:2.462.1-jdk17
+      imagePullPolicy: Always
+      name: init
+      resources:
+        limits:
+          cpu: "2"
+          memory: 4Gi
+        requests:
+          cpu: 50m
+          memory: 256Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        runAsGroup: 1000
+        runAsUser: 1000
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/jenkins_home
+        name: jenkins-home
+      - mountPath: /var/jenkins_config
+        name: jenkins-config
+      - mountPath: /usr/share/jenkins/ref/plugins
+        name: plugins
+      - mountPath: /var/jenkins_plugins
+        name: plugin-dir
+      - mountPath: /tmp
+        name: tmp-volume
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-bcxzk
+        readOnly: true
+    nodeName: cp-k8s
+    nodeSelector:
+      kubernetes.io/hostname: cp-k8s
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext:
+      fsGroup: 1000
+      runAsNonRoot: true
+      runAsUser: 1000
+    serviceAccount: jenkins
+    serviceAccountName: jenkins
+    subdomain: jenkins
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/control-plane
+      operator: Exists
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - emptyDir: {}
+      name: plugins
+    - configMap:
+        defaultMode: 420
+        name: jenkins
+      name: jenkins-config
+    - emptyDir: {}
+      name: plugin-dir
+    - name: jenkins-secrets
+      projected:
+        defaultMode: 420
+        sources:
+        - secret:
+            items:
+            - key: jenkins-admin-user
+              path: chart-admin-username
+            - key: jenkins-admin-password
+              path: chart-admin-password
+            name: jenkins
+    - emptyDir: {}
+      name: jenkins-cache
+    - name: jenkins-home
+      persistentVolumeClaim:
+        claimName: jenkins
+    - emptyDir: {}
+      name: sc-config-volume
+    - emptyDir: {}
+      name: tmp-volume
+    - name: kube-api-access-bcxzk
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2024-08-22T00:41:14Z"
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2024-08-22T00:41:12Z"
+      message: 'containers with incomplete status: [init]'
+      reason: ContainersNotInitialized
+      status: "False"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2024-08-22T00:41:12Z"
+      message: 'containers with unready status: [jenkins config-reload]'
+      reason: ContainersNotReady
+      status: "False"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2024-08-22T00:41:12Z"
+      message: 'containers with unready status: [jenkins config-reload]'
+      reason: ContainersNotReady
+      status: "False"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2024-08-22T00:41:12Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - image: docker.io/kiwigrid/k8s-sidecar:1.27.5
+      imageID: ""
+      lastState: {}
+      name: config-reload
+      ready: false
+      restartCount: 0
+      started: false
+      state:
+        waiting:
+          reason: PodInitializing
+    - image: docker.io/jenkins/jenkins:2.462.1-jdk17
+      imageID: ""
+      lastState: {}
+      name: jenkins
+      ready: false
+      restartCount: 0
+      started: false
+      state:
+        waiting:
+          reason: PodInitializing
+    hostIP: 192.168.1.10
+    hostIPs:
+    - ip: 192.168.1.10
+    initContainerStatuses:
+    - containerID: containerd://13fd1c090e70971d7ee2e19159238f5c53eb1a77f0aa6d22dfc46cbfa2252c7d
+      image: docker.io/kiwigrid/k8s-sidecar:1.27.5
+      imageID: docker.io/kiwigrid/k8s-sidecar@sha256:1fc88232e223a6977c626510372a74ca1f73af073e3c361719ccf02f223c8a12
+      lastState: {}
+      name: config-reload-init
+      ready: true
+      restartCount: 0
+      started: false
+      state:
+        terminated:
+          containerID: containerd://13fd1c090e70971d7ee2e19159238f5c53eb1a77f0aa6d22dfc46cbfa2252c7d
+          exitCode: 0
+          finishedAt: "2024-08-22T00:41:16Z"
+          reason: Completed
+          startedAt: "2024-08-22T00:41:13Z"
+    - containerID: containerd://ab038b1e3eea9d723ec719a376cd6184429d36e7c72608a1c3c8b821569a5f90
+      image: docker.io/jenkins/jenkins:2.462.1-jdk17
+      imageID: docker.io/jenkins/jenkins@sha256:2bafb1fb2d6489bccadc1b7c172937e9b56a888ed77e625a4ebe59a6b038221e
+      lastState: {}
+      name: init
+      ready: false
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2024-08-22T00:41:19Z"
+    phase: Pending
+    podIP: 172.16.196.137
+    podIPs:
+    - ip: 172.16.196.137
+    qosClass: Burstable
+    startTime: "2024-08-22T00:41:12Z"
+kind: List
+metadata:
+  resourceVersion: ""
